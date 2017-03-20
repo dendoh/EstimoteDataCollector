@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Estimote Data Collector</string>
     <string-array name="cell">
+        <item>0</item>
         <item>1</item>
         <item>2</item>
         <item>3</item>
@@ -17,6 +18,11 @@
         <item>14</item>
         <item>15</item>
         <item>16</item>
-        <item>17</item>
+    </string-array>
+    <string-array name="beacons">
+        <item>E6:A7:D8:92:8A:2C</item>
+        <item>CC:E2:29:71:29:B2</item>
+        <item>E2:A3:D4:8E:86:28</item>
+        <item>EE:8D:87:39:0A:52</item>
     </string-array>
 </resources>
