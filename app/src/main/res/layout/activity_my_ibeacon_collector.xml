@@ -29,28 +29,46 @@
         android:layout_alignParentStart="true"
         android:layout_marginBottom="45dp" />
 
-    <ProgressBar
-        style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:id="@+id/progressBar"
-        android:layout_marginTop="25dp"
-        android:layout_below="@+id/spinner_cell"
-        android:layout_centerHorizontal="true" />
-
-    <TextView
-        android:text="TextView"
-        android:layout_height="30dp"
-        android:layout_marginTop="40dp"
-        android:id="@+id/textView"
-        android:layout_width="150dp"
-        android:layout_below="@+id/progressBar"
-        android:layout_centerHorizontal="true" />
-
     <Spinner
         android:id="@+id/spinner_cell"
         android:layout_height="50dp"
         android:layout_width="100dp"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:id="@+id/progressBar"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:text="Area #"
+        android:layout_width="100dp"
+        android:layout_height="50dp"
+        android:id="@+id/textView2"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"
+        android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+    <TextView
+        android:text="TextView"
+        android:layout_height="30dp"
+        android:id="@+id/textView"
+        android:layout_width="300dp"
+        android:layout_below="@+id/progressBar"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="18dp" />
+
+    <TextView
+        android:text="TextView"
+        android:layout_width="300dp"
+        android:layout_height="30dp"
+        android:layout_below="@+id/textView"
+        android:layout_alignStart="@+id/textView"
+        android:layout_marginTop="14dp"
+        android:id="@+id/statustext" />
+
 </RelativeLayout>

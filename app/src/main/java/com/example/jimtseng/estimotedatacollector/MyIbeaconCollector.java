@@ -14,6 +14,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Build;
+import android.os.CountDownTimer;
+import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -24,7 +26,10 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TextView;
+
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -34,6 +39,7 @@ import java.lang.String;
 
 public class MyIbeaconCollector extends AppCompatActivity {
 
+    private static final int REQUEST_CODE_COARSE = 2528;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothLeScanner mLEScanner;
     private ScanSettings settings;
@@ -43,18 +49,26 @@ public class MyIbeaconCollector extends AppCompatActivity {
     private Handler mHandler;
     private ScanResult SharedScanResult;
     private Button button_start, button_stop;
+    private TextView mytext,mystatustext;
+    private ProgressBar mybar;
     private FileOutputStream myfile;
     private boolean FileInOpen = false;
     private int myposition;
+    private int progress;
     final String TAG = "EstimoteCollector";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_ibeacon_collector);
-        Spinner myspinner = (Spinner) findViewById(R.id.spinner_cell);
+        final Spinner myspinner = (Spinner) findViewById(R.id.spinner_cell);
         button_start = (Button) findViewById(R.id.button_start);
         button_stop = (Button) findViewById(R.id.button_stop);
+        mybar = (ProgressBar) findViewById(R.id.progressBar);
+        mybar.setProgress(0);
+        mytext = (TextView) findViewById(R.id.textView);
+        mystatustext = (TextView) findViewById(R.id.statustext);
+        mytext.setText("Press Start button to record");
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.cell,
                 android.R.layout.simple_spinner_dropdown_item);
@@ -76,7 +90,9 @@ public class MyIbeaconCollector extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Log.d(TAG,"Start recording");
-                OpenRecordFile("/sdcard/Documents/"+"my_beacon_log.csv");
+                mystatustext.setText("Start recording");
+                OpenRecordFile(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+"/my_beacon_log.csv");
+                progress = 0;
             }
         });
         button_stop.setOnClickListener(new View.OnClickListener(){
@@ -84,10 +100,12 @@ public class MyIbeaconCollector extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 CloseRecordFile();
+                mystatustext.setText("Close recorded file");
                 Log.d(TAG,"Stop recording");
             }
         });
         mHandler = new Handler();
+        ActivityCompat.requestPermissions(MyIbeaconCollector.this,new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},REQUEST_CODE_COARSE);
         final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         Log.d(TAG, "getting BT adapter....");
         mBluetoothAdapter = bluetoothManager.getAdapter();
@@ -105,6 +123,7 @@ public class MyIbeaconCollector extends AppCompatActivity {
                 Log.d(TAG, "invalid beacon addr");
             }
             Log.d(TAG, "Adding filter<" + beacon + ">");
+            mystatustext.setText("Adding filter<" + beacon + ">");
             filters.add(beacon_filter);
         }
     }
@@ -124,8 +143,20 @@ public class MyIbeaconCollector extends AppCompatActivity {
             Log.d(TAG, "BT is not enabled, requesting to enable");
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, 1);
+            finish();
+        } else {
+            if(Build.VERSION.SDK_INT >= 23) {
+                mystatustext.setText("SDK>=23, checking location permission");
+                if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    mystatustext.setText("SDK>=23 and location permission granted");
+                    scanLeDevice(true);
+                }
+            } else {
+                mystatustext.setText("SDK<23,no location permission required");
+                scanLeDevice(true);
+            }
         }
-        scanLeDevice(true);
     }
 
     @Override
@@ -162,10 +193,12 @@ public class MyIbeaconCollector extends AppCompatActivity {
         Log.d(TAG, "scanLeDevice enable=" + enable);
         if (enable) {
             Log.d(TAG, "Starting scan");
+            mystatustext.setText("Starting scan");
             mLEScanner.startScan(filters, settings, mLEScanCallback_new);
             // mBluetoothAdapter.startLeScan(mLeScanCallback);
         } else {
             Log.d(TAG, "Stopping scan");
+            mystatustext.setText("Scan stopped");
             mLEScanner.stopScan(mLEScanCallback_new);
             // mBluetoothAdapter.stopLeScan(mLeScanCallback);
         }
@@ -192,11 +225,20 @@ public class MyIbeaconCollector extends AppCompatActivity {
                 }
             });
             Log.d(TAG, "BLEDevice:" + result.getDevice().toString() + " Record:" + bytesToHex(result.getScanRecord().getBytes()) + " rssi:" + result.getRssi());
+            mytext.setText("Found beacon:"+SharedScanResult.getDevice().toString());
             Calendar c = Calendar.getInstance();
             WriteBeaconData(c.getTime().toString(),
                     String.format("%d",myposition),
                     SharedScanResult.getDevice().toString(),
                     String.format("%d",SharedScanResult.getRssi()));
+            if(FileInOpen && progress < 100) {
+                mybar.setProgress(progress++);
+                mystatustext.setText("Progress:%" + String.format("%d", progress));
+            } else if(!FileInOpen) {
+                mystatustext.setText("Stopped. File in path "+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+            } else {
+                mystatustext.setText("Progress > 100%, you may stop anytime");
+            }
         }
 
         @Override
@@ -211,7 +253,6 @@ public class MyIbeaconCollector extends AppCompatActivity {
             Log.e(TAG, "Scan error code:" + errorCode);
         }
     };
-
     private static String bytesToHex(byte[] in) {
         final StringBuilder builder = new StringBuilder();
         for (byte b : in) {
@@ -264,11 +305,13 @@ public class MyIbeaconCollector extends AppCompatActivity {
             if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                     == PackageManager.PERMISSION_GRANTED) {
                 Log.v(TAG,"Permission is granted");
+                mystatustext.setText("Storage write permission granted");
                 return true;
             } else {
 
                 Log.v(TAG,"Permission is revoked");
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                mystatustext.setText("Requesting storage write permission");
                 return false;
             }
         }
